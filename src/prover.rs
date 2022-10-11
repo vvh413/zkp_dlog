@@ -1,12 +1,10 @@
-use rand::thread_rng;
-use rand::Rng;
-use tokio::sync::mpsc::Receiver;
-use tokio::sync::mpsc::Sender;
+use rand::{thread_rng, Rng};
+use tokio::sync::mpsc::{Receiver, Sender};
 
-use crate::modular::pow;
-use crate::modular::sub;
-use crate::prime::get_coprime;
-use crate::prime::get_prime;
+use crate::{
+    modular::{add, pow},
+    prime::{get_coprime, get_prime},
+};
 
 pub struct Prover {
     pub p: u64,
@@ -38,6 +36,8 @@ impl Prover {
     pub async fn run(&self, tx: Sender<u64>, mut rx: Receiver<u64>) {
         tx.send(self.p).await.unwrap();
         tx.send(self.a).await.unwrap();
+        tx.send(self.b).await.unwrap();
+
         for h_i in self.h().iter() {
             tx.send(*h_i).await.unwrap();
         }
@@ -47,36 +47,25 @@ impl Prover {
             b.push(rx.recv().await.unwrap() != 0);
         }
 
-        let j: usize = rx.recv().await.unwrap() as usize;
-        dbg!(j);
-
-        for s_i in self.s(&b, j).iter() {
+        for s_i in self.s(&b).iter() {
             tx.send(*s_i).await.unwrap()
         }
-
-        tx.send(self.z(j)).await.unwrap();
-        tx.send(self.b).await.unwrap();
     }
 
     pub fn h(&self) -> Vec<u64> {
         self.r.iter().map(|r_i| pow(self.a, *r_i, self.p)).collect()
     }
 
-    pub fn s(&self, b: &Vec<bool>, j: usize) -> Vec<u64> {
-        let r_j = self.r[j];
+    pub fn s(&self, b: &Vec<bool>) -> Vec<u64> {
         b.iter()
             .enumerate()
             .map(|(i, b_i)| {
                 if *b_i {
-                    sub(self.r[i], r_j, self.p - 1)
+                    add(self.r[i], self.x, self.p - 1)
                 } else {
                     self.r[i]
                 }
             })
             .collect()
-    }
-
-    pub fn z(&self, j: usize) -> u64 {
-        sub(self.x, self.r[j], self.p - 1)
     }
 }

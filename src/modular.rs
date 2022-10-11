@@ -1,6 +1,6 @@
 use anyhow::{ensure, Result};
 
-fn add(x: u64, y: u64, p: u64) -> u64 {
+pub fn add(x: u64, y: u64, p: u64) -> u64 {
     let r = p - x;
     if y < r {
         x + y
