@@ -47,7 +47,7 @@ impl Verifier {
             }
         }
 
-        log::info!("async ok");
+        println!("async ok");
     }
 
     pub fn verify(&self, peggy: Prover) -> Result<()> {
@@ -61,7 +61,7 @@ impl Verifier {
             }
         }
 
-        log::info!("sync ok");
+        println!("sync ok");
         Ok(())
     }
 }

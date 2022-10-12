@@ -13,7 +13,6 @@ mod test;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    env_logger::init();
     let t = 1000;
 
     let peggy = Prover::new(t);
