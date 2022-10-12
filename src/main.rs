@@ -1,3 +1,5 @@
+use std::env;
+
 use anyhow::Result;
 use tokio::sync::mpsc::{channel, Receiver, Sender};
 
@@ -13,7 +15,8 @@ mod test;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let t = 1000;
+    let args: Vec<String> = env::args().collect();
+    let t: usize = args[1].parse()?;
 
     let peggy = Prover::new(t);
     let victor = Verifier::new(t);
@@ -23,9 +26,9 @@ async fn main() -> Result<()> {
 
     let (tx1, rx1): (Sender<u64>, Receiver<u64>) = channel(1);
     let (tx2, rx2): (Sender<u64>, Receiver<u64>) = channel(1);
-    tokio::join!(peggy.run(tx1, rx2), victor.run(tx2, rx1));
 
-    victor.verify(peggy)?;
+    tokio::join!(peggy.run(tx1, rx2), victor.run(tx2, rx1));
+    victor.verify(&peggy)?;
 
     Ok(())
 }

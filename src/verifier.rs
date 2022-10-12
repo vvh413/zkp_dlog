@@ -41,8 +41,10 @@ impl Verifier {
         }
         for (i, b_i) in self.b.iter().enumerate() {
             if *b_i {
+                println!("{} ^ {:20} = {:20} * {}", a, s[i], h[i], b);
                 assert!(pow(a, s[i], p) == mul(h[i], b, p));
             } else {
+                println!("{} ^ {:20} = {:20}", a, s[i], h[i]);
                 assert!(pow(a, s[i], p) == h[i]);
             }
         }
@@ -50,7 +52,7 @@ impl Verifier {
         println!("async ok");
     }
 
-    pub fn verify(&self, peggy: Prover) -> Result<()> {
+    pub fn verify(&self, peggy: &Prover) -> Result<()> {
         let h = peggy.h();
         let s = peggy.s(&self.b);
         for (i, b_i) in self.b.iter().enumerate() {
