@@ -2,10 +2,8 @@ use anyhow::{ensure, Result};
 use rand::{thread_rng, Rng};
 use tokio::sync::mpsc::{Receiver, Sender};
 
-use crate::{
-    modular::{mul, pow},
-    prover::Prover,
-};
+use crate::math::modular::{mul, pow};
+
 
 pub struct Verifier {
     pub b: Vec<bool>,
@@ -25,12 +23,14 @@ impl Verifier {
         let p = rx.recv().await.unwrap();
         let a = rx.recv().await.unwrap();
         let b = rx.recv().await.unwrap();
+        log::info!("recieved p, A and B");
 
         let mut h: Vec<u64> = Vec::new();
         for _ in 0..self.t {
             h.push(rx.recv().await.unwrap());
         }
 
+        log::info!("sending random bits");
         for b_i in self.b.iter() {
             tx.send(*b_i as u64).await.unwrap();
         }
@@ -39,31 +39,23 @@ impl Verifier {
         for _ in 0..self.t {
             s.push(rx.recv().await.unwrap());
         }
-        for (i, b_i) in self.b.iter().enumerate() {
-            if *b_i {
-                println!("{} ^ {:20} = {:20} * {}", a, s[i], h[i], b);
-                assert!(pow(a, s[i], p) == mul(h[i], b, p));
-            } else {
-                println!("{} ^ {:20} = {:20}", a, s[i], h[i]);
-                assert!(pow(a, s[i], p) == h[i]);
-            }
-        }
+        log::info!("recieved s_i");
 
-        println!("async ok");
+        log::info!("verifying");
+        self.verify(p, a, b, &s, &h).unwrap();
+        log::info!("ok");
     }
 
-    pub fn verify(&self, peggy: &Prover) -> Result<()> {
-        let h = peggy.h();
-        let s = peggy.s(&self.b);
+    pub fn verify(&self, p: u64, a: u64, b: u64, s: &Vec<u64>, h: &Vec<u64>) -> Result<()> {
         for (i, b_i) in self.b.iter().enumerate() {
             if *b_i {
-                ensure!(pow(peggy.a, s[i], peggy.p) == mul(h[i], peggy.b, peggy.p));
+                log::debug!("{} ^ {:20} = {:20} * {}", a, s[i], h[i], b);
+                ensure!(pow(a, s[i], p) == mul(h[i], b, p));
             } else {
-                ensure!(pow(peggy.a, s[i], peggy.p) == h[i]);
+                log::debug!("{} ^ {:20} = {:20}", a, s[i], h[i]);
+                ensure!(pow(a, s[i], p) == h[i]);
             }
         }
-
-        println!("sync ok");
         Ok(())
     }
 }

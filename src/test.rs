@@ -1,7 +1,7 @@
 use anyhow::Result;
 use rand::{thread_rng, Rng};
 
-use crate::{
+use crate::math::{
     modular::{gcd, inverse, mul},
     prime::{get_coprime, get_prime},
 };
