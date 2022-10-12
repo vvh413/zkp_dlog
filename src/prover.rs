@@ -17,17 +17,16 @@ pub struct Prover {
 
 impl Prover {
     pub fn new(t: usize) -> Self {
-        let mut rng = thread_rng();
         let p = get_prime(1000);
         let x = get_coprime(p - 1, p);
-        let a = rng.gen_range(2..p);
+        let a = thread_rng().gen_range(0..p);
         log::info!("p = {}", p);
         log::info!("A = {}", a);
         Prover {
             p,
             x,
             a,
-            r: (0..t).map(|_| rng.gen_range(2..p - 1)).collect(),
+            r: (0..t).map(|_| thread_rng().gen_range(0..p - 1)).collect(),
             t,
         }
     }

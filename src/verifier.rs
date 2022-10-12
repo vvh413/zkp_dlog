@@ -12,9 +12,8 @@ pub struct Verifier {
 
 impl Verifier {
     pub fn new(t: usize) -> Self {
-        let mut rng = thread_rng();
         Verifier {
-            b: (0..t).map(|_| rng.gen_bool(0.5)).collect(),
+            b: (0..t).map(|_| thread_rng().gen_bool(0.5)).collect(),
             t,
         }
     }
