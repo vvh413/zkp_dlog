@@ -2,7 +2,8 @@
 
 ```sh
 cargo test
-cargo run
+RUST_LOG=info cargo run 1000
 
 cargo build --release
+RUST_LOG=info ./target/release/dlog 1000
 ```
