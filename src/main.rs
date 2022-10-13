@@ -24,7 +24,7 @@ async fn main() -> Result<()> {
     let (tx1, rx1): (Sender<u64>, Receiver<u64>) = channel(1);
     let (tx2, rx2): (Sender<u64>, Receiver<u64>) = channel(1);
 
-    tokio::join!(peggy.run(tx1, rx2), victor.run(tx2, rx1));
+    tokio::try_join!(peggy.run(tx1, rx2), victor.run(tx2, rx1))?;
 
     Ok(())
 }

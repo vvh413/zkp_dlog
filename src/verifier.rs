@@ -4,21 +4,16 @@ use tokio::sync::mpsc::{Receiver, Sender};
 
 use crate::math::modular::{mul, pow};
 
-
 pub struct Verifier {
-    pub b: Vec<bool>,
-    pub t: usize,
+    t: usize,
 }
 
 impl Verifier {
     pub fn new(t: usize) -> Self {
-        Verifier {
-            b: (0..t).map(|_| thread_rng().gen_bool(0.5)).collect(),
-            t,
-        }
+        Verifier { t }
     }
 
-    pub async fn run(&self, tx: Sender<u64>, mut rx: Receiver<u64>) {
+    pub async fn run(&self, tx: Sender<u64>, mut rx: Receiver<u64>) -> Result<()> {
         let p = rx.recv().await.unwrap();
         let a = rx.recv().await.unwrap();
         let b = rx.recv().await.unwrap();
@@ -29,9 +24,12 @@ impl Verifier {
             h.push(rx.recv().await.unwrap());
         }
 
+        log::info!("generating random bits");
+        let bits: Vec<bool> = (0..self.t).map(|_| thread_rng().gen_bool(0.5)).collect();
+
         log::info!("sending random bits");
-        for b_i in self.b.iter() {
-            tx.send(*b_i as u64).await.unwrap();
+        for b_i in bits.iter() {
+            tx.send(*b_i as u64).await?;
         }
 
         let mut s: Vec<u64> = Vec::new();
@@ -41,12 +39,22 @@ impl Verifier {
         log::info!("recieved s_i");
 
         log::info!("verifying");
-        self.verify(p, a, b, &s, &h).unwrap();
+        self.verify(p, a, b, &h, &s, &bits)?;
         log::info!("ok");
+
+        Ok(())
     }
 
-    pub fn verify(&self, p: u64, a: u64, b: u64, s: &Vec<u64>, h: &Vec<u64>) -> Result<()> {
-        for (i, b_i) in self.b.iter().enumerate() {
+    pub fn verify(
+        &self,
+        p: u64,
+        a: u64,
+        b: u64,
+        h: &Vec<u64>,
+        s: &Vec<u64>,
+        bits: &Vec<bool>,
+    ) -> Result<()> {
+        for (i, b_i) in bits.iter().enumerate() {
             if *b_i {
                 log::debug!("{} ^ {:20} = {:20} * {}", a, s[i], h[i], b);
                 ensure!(pow(a, s[i], p) == mul(h[i], b, p));
