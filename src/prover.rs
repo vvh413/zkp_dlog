@@ -2,9 +2,9 @@ use anyhow::Result;
 use rand::{thread_rng, Rng};
 use tokio::sync::mpsc::{Receiver, Sender};
 
-use crate::{
-    math::modular::{add, pow},
-    math::prime::{get_coprime, get_prime},
+use crate::math::{
+    modular::{pow, sub},
+    prime::{get_coprime, get_prime},
 };
 
 pub struct Prover {
@@ -16,7 +16,7 @@ pub struct Prover {
 
 impl Prover {
     pub fn new(t: usize) -> Self {
-        let p = get_prime(1000);
+        let p = get_prime(t);
         let x = get_coprime(p - 1, p);
         let a = thread_rng().gen_range(0..p);
         log::info!("p = {}", p);
@@ -42,16 +42,24 @@ impl Prover {
             tx.send(*h_i).await?;
         }
 
-        let mut b: Vec<bool> = Vec::new();
+        let mut bits: Vec<bool> = Vec::new();
         for _ in 0..self.t {
-            b.push(rx.recv().await.unwrap() != 0);
+            bits.push(rx.recv().await.unwrap() != 0);
         }
         log::info!("received random bits");
+        let j = bits.iter().position(|b_i| *b_i).unwrap();
+        log::info!("j = {}", j);
 
-        log::info!("sending s_i = (r_i + b_i * x) mod p");
-        for s_i in self.s(&b, &r).iter() {
+        log::info!("sending s_i = (r_i - r_j * b_i) mod (p - 1)");
+        for s_i in self.s(&bits, &r).iter() {
             tx.send(*s_i).await?
         }
+
+        let z = self.z(r[j]);
+        log::info!("Z = (x - r_j) mod (p - 1) = {}", z);
+        log::info!("sending Z");
+        tx.send(z).await?;
+
         Ok(())
     }
 
@@ -63,16 +71,22 @@ impl Prover {
         r.iter().map(|r_i| pow(self.a, *r_i, self.p)).collect()
     }
 
-    pub fn s(&self, b: &Vec<bool>, r: &Vec<u64>) -> Vec<u64> {
-        b.iter()
+    pub fn s(&self, bits: &Vec<bool>, r: &Vec<u64>) -> Vec<u64> {
+        let j = bits.iter().position(|b_i| *b_i).unwrap();
+        let r_j = r[j];
+        bits.iter()
             .enumerate()
             .map(|(i, b_i)| {
                 if *b_i {
-                    add(r[i], self.x, self.p - 1)
+                    sub(r[i], r_j, self.p - 1)
                 } else {
                     r[i]
                 }
             })
             .collect()
+    }
+
+    pub fn z(&self, r_j: u64) -> u64 {
+        sub(self.x, r_j, self.p - 1)
     }
 }
