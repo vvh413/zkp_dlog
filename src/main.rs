@@ -16,7 +16,7 @@ mod test;
 async fn main() -> Result<()> {
     env_logger::init();
     let args: Vec<String> = env::args().collect();
-    let t: usize = args[1].parse()?;
+    let t: usize = args.get(1).expect("expects param `t`").parse()?;
 
     let peggy = Prover::new(t);
     let victor = Verifier::new(t);
